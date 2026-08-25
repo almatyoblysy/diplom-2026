@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Дипломдар порталы</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            color: #222;
+        }
+
+        header {
+            background: #ffffff;
+            padding: 20px 40px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 25px;
+            font-weight: bold;
+        }
+
+        .login-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 22px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .hero {
+            max-width: 1100px;
+            margin: 70px auto;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 42px;
+            margin-bottom: 20px;
+        }
+
+        .hero p {
+            font-size: 19px;
+            color: #666;
+            margin-bottom: 40px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+        }
+
+        .card {
+            background: white;
+            padding: 35px 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        .card h2 {
+            margin-bottom: 15px;
+        }
+
+        .card p {
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .card button {
+            margin-top: 20px;
+            padding: 11px 20px;
+            border: none;
+            border-radius: 7px;
+            background: #2563eb;
+            color: white;
+            cursor: pointer;
+        }
+
+        footer {
+            margin-top: 80px;
+            padding: 25px;
+            text-align: center;
+            background: #ffffff;
+            color: #777;
+        }
+
+        @media (max-width: 800px) {
+            .cards {
+                grid-template-columns: 1fr;
+            }
+
+            .hero h1 {
+                font-size: 30px;
+            }
+
+            header {
+                padding: 15px 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <div class="logo">🏆 Дипломдар порталы</div>
+
+    <button class="login-btn" onclick="login()">
+        Кіру
+    </button>
+</header>
+
+<section class="hero">
+
+    <h1>Дипломдар жасау жүйесі</h1>
+
+    <p>
+        Дипломдарды жасау, басқару және QR-код арқылы тексеру жүйесі
+    </p>
+
+    <div class="cards">
+
+        <div class="card">
+            <h2>📄 Диплом жасау</h2>
+
+            <p>
+                Оқушы туралы ақпарат енгізіп,
+                дайын диплом жасау.
+            </p>
+
+            <button onclick="createDiploma()">
+                Диплом жасау
+            </button>
+        </div>
+
+        <div class="card">
+            <h2>🔎 Диплом тексеру</h2>
+
+            <p>
+                Дипломның тіркеу нөмірі арқылы
+                түпнұсқалығын тексеру.
+            </p>
+
+            <button onclick="verifyDiploma()">
+                Тексеру
+            </button>
+        </div>
+
+        <div class="card">
+            <h2>📱 QR код</h2>
+
+            <p>
+                Әр дипломға жеке QR-код жасап,
+                дипломға орналастыру.
+            </p>
+
+            <button onclick="qrPage()">
+                QR код
+            </button>
+        </div>
+
+    </div>
+
+</section>
+
+<footer>
+    © 2026 Дипломдар порталы
+</footer>
+
+<script>
+
+function login() {
+    alert("Логин бөлімі келесі кезеңде жасалады.");
+}
+
+function createDiploma() {
+    alert("Диплом жасау бөлімі келесі кезеңде жасалады.");
+}
+
+function verifyDiploma() {
+    alert("Диплом тексеру бөлімі келесі кезеңде жасалады.");
+}
+
+function qrPage() {
+    alert("QR код бөлімі келесі кезеңде жасалады.");
+}
+
+</script>
+
+</body>
+</html>
