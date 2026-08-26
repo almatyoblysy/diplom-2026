@@ -739,7 +739,7 @@ function App() {
     backgroundImage
   ) => {
     // 3x render: PDF/print quality is much better.
-    const SCALE = 3;
+    const SCALE = 2;
 
     const canvas = document.createElement("canvas");
 
@@ -811,6 +811,12 @@ function App() {
 
     for (const element of elements) {
       if (element.visible === false) continue;
+
+      // "Түрі" және "Жүлделі орын" диплом бетіне шықпайды.
+      // Бірақ олардың мәліметтері QR-кодтың ішінде қалады.
+      if (element.id === "type" || element.id === "place") {
+        continue;
+      }
 
       // ---------------- QR ----------------
       if (element.id === "qr") {
@@ -946,7 +952,8 @@ function App() {
         */
         const imageData =
           diplomaCanvas.toDataURL(
-            "image/png"
+            "image/jpeg",
+            0.85
           );
 
         if (i > 0) {
@@ -960,13 +967,13 @@ function App() {
 
         pdf.addImage(
           imageData,
-          "PNG",
+          "JPEG",
           0,
           0,
           pageWidth,
           pageHeight,
           undefined,
-          "NONE"
+          "FAST"
         );
 
         /*
@@ -979,17 +986,12 @@ function App() {
           Браузерге демалу үшін әр 10 беттен кейін
           кішкене кідіріс.
         */
-        if (
-          i % 10 === 0 &&
-          i !== 0
-        ) {
-          await new Promise(
-            (resolve) =>
-              setTimeout(resolve, 20)
+        if (i % 5 === 0 && i !== 0) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, 50)
           );
         }
       }
-
       setPdfProgress(
         "📄 PDF дайын! Файл сақталып жатыр..."
       );
