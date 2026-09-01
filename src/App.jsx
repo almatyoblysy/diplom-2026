@@ -213,7 +213,7 @@ function App() {
       textAlign: "center",
       uppercase: false,
       visible: true,
-      qrSize: 280,
+      qrSize: 300,
     },
   ]);
 
@@ -431,21 +431,38 @@ function App() {
     const place = getStudentValue(student, "place");
     const order = getStudentValue(student, "order");
 
-    return [
-      "ДИПЛОМ ТУРАЛЫ АҚПАРАТ",
-      "",
-      `Аудан: ${district}`,
-      `Мекеме атауы: ${institution}`,
-      `Жетекшісінің аты-жөні: ${leader}`,
-      `Оқушының аты-жөні: ${name}`,
-      `Тіркеу №: ${registration}`,
-      `Байқау атауы: ${competition}`,
-      `Пәні: ${subject}`,
-      `Номинация: ${nomination}`,
-      `Түрі: ${type}`,
-      `Жүлделі орын: ${place}`,
-      `Өткізу бұйрық номері/күні: ${order}`,
-    ].join("\n");
+    const getQrText = (student) => {
+      if (!student) return "";
+
+      const fields = [
+        ["Аудан", "district"],
+        ["Мекеме атауы", "institution"],
+        ["Жетекшісі", "leader"],
+        ["Оқушы", "name"],
+        ["Тіркеу №", "registration"],
+        ["Байқау", "competition"],
+        ["Пәні", "subject"],
+        ["Номинация", "nomination"],
+        ["Түрі", "type"],
+        ["Жүлделі орын", "place"],
+        ["Бұйрық", "order"],
+      ];
+
+      const qrLines = ["ДИПЛОМ ТУРАЛЫ АҚПАРАТ"];
+
+      fields.forEach(([label, id]) => {
+        const value = String(
+          getStudentValue(student, id) ?? ""
+        ).trim();
+
+        // Excel-де ақпарат жоқ болса — QR-ға қоспаймыз
+        if (value !== "") {
+          qrLines.push(`${label}: ${value}`);
+        }
+      });
+
+      return qrLines.join("\n");
+    };
   };
 
   // =========================================================
