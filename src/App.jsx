@@ -1,7 +1,33 @@
+import "@fontsource/montserrat/400.css";
+import "@fontsource/montserrat/700.css";
+
+import "@fontsource/noto-sans/400.css";
+import "@fontsource/noto-sans/700.css";
+
+import "@fontsource/noto-serif/400.css";
+import "@fontsource/noto-serif/700.css";
+
+import "@fontsource/playfair-display/400.css";
+import "@fontsource/playfair-display/700.css";
+
+import "@fontsource/cormorant-garamond/400.css";
+import "@fontsource/cormorant-garamond/700.css";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import QRCode from "qrcode";
 import jsPDF from "jspdf";
+
+const FONT_URL =
+  "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Lora:wght@400;500;600;700&family=Merriweather:wght@400;700&family=Montserrat:wght@400;500;600;700;800&family=Nunito:wght@400;500;600;700;800&family=Open+Sans:wght@400;600;700;800&family=Oswald:wght@400;500;600;700&family=PT+Sans:wght@400;700&family=PT+Serif:wght@400;700&family=Playfair+Display:wght@400;500;600;700;800&family=Raleway:wght@400;500;600;700;800&display=swap";
+
+const fontLink = document.createElement("link");
+fontLink.rel = "stylesheet";
+fontLink.href = FONT_URL;
+
+if (!document.head.querySelector(`link[href="${FONT_URL}"]`)) {
+  document.head.appendChild(fontLink);
+}
 
 function App() {
   // =========================================================
@@ -130,6 +156,21 @@ function App() {
     },
 
     {
+      id: "nomination",
+      label: "Номинация",
+      x: 561,
+      y: 520,
+      fontFamily: "Arial",
+      fontSize: 20,
+      fontWeight: "normal",
+      fontStyle: "normal",
+      color: "#000000",
+      textAlign: "center",
+      uppercase: false,
+      visible: true,
+    },
+
+    {
       id: "place",
       label: "Жүлделі орын",
       x: 561,
@@ -172,7 +213,7 @@ function App() {
       textAlign: "center",
       uppercase: false,
       visible: true,
-      qrSize: 120,
+      qrSize: 280,
     },
   ]);
 
@@ -201,14 +242,17 @@ function App() {
   // =========================================================
 
   const columnMap = {
-    type: "Түрі",
-    name: "Оқушының аты-жөні",
     district: "Аудан",
     institution: "Мекеме атауы",
     leader: "Жетекшісінің аты-жөні",
+    name: "Оқушының аты-жөні",
     registration: "Тіркеу №",
+    competition: "Байқау атауы",
     subject: "Пәні",
+    nomination: "Номинация",
+    type: "Түрі",
     place: "Жүлделі орын",
+    order: "Өткізу бұйрық номері/күні",
   };
 
   // =========================================================
@@ -375,27 +419,32 @@ function App() {
   const getQrText = (student) => {
     if (!student) return "";
 
-    const type = getStudentValue(student, "type");
     const district = getStudentValue(student, "district");
     const institution = getStudentValue(student, "institution");
     const leader = getStudentValue(student, "leader");
     const name = getStudentValue(student, "name");
-    const registration = getStudentValue(
-      student,
-      "registration"
-    );
+    const registration = getStudentValue(student, "registration");
+    const competition = getStudentValue(student, "competition");
     const subject = getStudentValue(student, "subject");
+    const nomination = getStudentValue(student, "nomination");
+    const type = getStudentValue(student, "type");
     const place = getStudentValue(student, "place");
+    const order = getStudentValue(student, "order");
 
     return [
-      `Диплом: ${type}`,
-      `Оқушы: ${name}`,
+      "ДИПЛОМ ТУРАЛЫ АҚПАРАТ",
+      "",
+      `Аудан: ${district}`,
+      `Мекеме атауы: ${institution}`,
+      `Жетекшісінің аты-жөні: ${leader}`,
+      `Оқушының аты-жөні: ${name}`,
       `Тіркеу №: ${registration}`,
-      `Орын: ${place}`,
+      `Байқау атауы: ${competition}`,
       `Пәні: ${subject}`,
-      `Мектеп: ${institution}`,
-      `Аудан/қала: ${district}`,
-      `Жетекші: ${leader}`,
+      `Номинация: ${nomination}`,
+      `Түрі: ${type}`,
+      `Жүлделі орын: ${place}`,
+      `Өткізу бұйрық номері/күні: ${order}`,
     ].join("\n");
   };
 
@@ -739,7 +788,7 @@ function App() {
     backgroundImage
   ) => {
     // 3x render: PDF/print quality is much better.
-    const SCALE = 2;
+    const SCALE = 4;
 
     const canvas = document.createElement("canvas");
 
@@ -901,6 +950,8 @@ function App() {
 
       setPdfLoading(true);
 
+      await document.fonts.ready;
+
       setPdfProgress(
         "⏳ Диплом фоны дайындалып жатыр..."
       );
@@ -952,8 +1003,7 @@ function App() {
         */
         const imageData =
           diplomaCanvas.toDataURL(
-            "image/jpeg",
-            0.85
+            "image/png"
           );
 
         if (i > 0) {
@@ -1669,28 +1719,76 @@ function App() {
                     )
                   }
                 >
-                  <option value="Arial">
-                    Arial
-                  </option>
+                  <option value="Arial">Arial</option>
 
                   <option value="Times New Roman">
                     Times New Roman
                   </option>
 
-                  <option value="Georgia">
-                    Georgia
-                  </option>
+                  <option value="Georgia">Georgia</option>
 
-                  <option value="Verdana">
-                    Verdana
-                  </option>
+                  <option value="Verdana">Verdana</option>
 
-                  <option value="Tahoma">
-                    Tahoma
-                  </option>
+                  <option value="Tahoma">Tahoma</option>
 
                   <option value="Trebuchet MS">
                     Trebuchet MS
+                  </option>
+
+                  <option value="Montserrat">
+                    Montserrat
+                  </option>
+
+                  <option value="Playfair Display">
+                    Playfair Display
+                  </option>
+
+                  <option value="Merriweather">
+                    Merriweather
+                  </option>
+
+                  <option value="Lora">
+                    Lora
+                  </option>
+
+                  <option value="Roboto">
+                    Roboto
+                  </option>
+
+                  <option value="Open Sans">
+                    Open Sans
+                  </option>
+
+                  <option value="Noto Sans">
+                    Noto Sans
+                  </option>
+
+                  <option value="Noto Serif">
+                    Noto Serif
+                  </option>
+
+                  <option value="PT Sans">
+                    PT Sans
+                  </option>
+
+                  <option value="PT Serif">
+                    PT Serif
+                  </option>
+
+                  <option value="Cormorant Garamond">
+                    Cormorant Garamond
+                  </option>
+
+                  <option value="Raleway">
+                    Raleway
+                  </option>
+
+                  <option value="Oswald">
+                    Oswald
+                  </option>
+
+                  <option value="Nunito">
+                    Nunito
                   </option>
                 </select>
               </div>
