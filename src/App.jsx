@@ -218,7 +218,6 @@ function App() {
   ]);
 
   const [selectedElement, setSelectedElement] = useState("name");
-
   const [dragging, setDragging] = useState(null);
 
   // =========================================================
@@ -334,6 +333,7 @@ function App() {
           console.log("Excel оқылды:", rows.length);
         } catch (error) {
           console.error(error);
+
           setErrorMessage(
             "Excel оқу кезінде қате: " +
               (error?.message || String(error))
@@ -378,9 +378,7 @@ function App() {
     } catch (error) {
       console.error(error);
 
-      setErrorMessage(
-        "Дизайн жүктеу кезінде қате болды."
-      );
+      setErrorMessage("Дизайн жүктеу кезінде қате болды.");
     }
   };
 
@@ -388,9 +386,7 @@ function App() {
   // STUDENT PREVIEW
   // =========================================================
 
-  const firstStudent = students.length
-    ? students[0]
-    : null;
+  const firstStudent = students.length ? students[0] : null;
 
   // =========================================================
   // TEXT
@@ -401,9 +397,7 @@ function App() {
       return element.id === "qr" ? "QR" : "";
     }
 
-    let text = String(
-      getStudentValue(student, element.id) ?? ""
-    );
+    let text = String(getStudentValue(student, element.id) ?? "");
 
     if (element.uppercase) {
       text = text.toUpperCase();
@@ -419,50 +413,33 @@ function App() {
   const getQrText = (student) => {
     if (!student) return "";
 
-    const district = getStudentValue(student, "district");
-    const institution = getStudentValue(student, "institution");
-    const leader = getStudentValue(student, "leader");
-    const name = getStudentValue(student, "name");
-    const registration = getStudentValue(student, "registration");
-    const competition = getStudentValue(student, "competition");
-    const subject = getStudentValue(student, "subject");
-    const nomination = getStudentValue(student, "nomination");
-    const type = getStudentValue(student, "type");
-    const place = getStudentValue(student, "place");
-    const order = getStudentValue(student, "order");
+    const fields = [
+      ["Аудан", "district"],
+      ["Мекеме атауы", "institution"],
+      ["Жетекшісі", "leader"],
+      ["Оқушы", "name"],
+      ["Тіркеу №", "registration"],
+      ["Байқау", "competition"],
+      ["Пәні", "subject"],
+      ["Номинация", "nomination"],
+      ["Түрі", "type"],
+      ["Жүлделі орын", "place"],
+      ["Бұйрық", "order"],
+    ];
 
-    const getQrText = (student) => {
-      if (!student) return "";
+    const qrLines = ["ДИПЛОМ ТУРАЛЫ АҚПАРАТ"];
 
-      const fields = [
-        ["Аудан", "district"],
-        ["Мекеме атауы", "institution"],
-        ["Жетекшісі", "leader"],
-        ["Оқушы", "name"],
-        ["Тіркеу №", "registration"],
-        ["Байқау", "competition"],
-        ["Пәні", "subject"],
-        ["Номинация", "nomination"],
-        ["Түрі", "type"],
-        ["Жүлделі орын", "place"],
-        ["Бұйрық", "order"],
-      ];
+    fields.forEach(([label, id]) => {
+      const value = String(
+        getStudentValue(student, id) ?? ""
+      ).trim();
 
-      const qrLines = ["ДИПЛОМ ТУРАЛЫ АҚПАРАТ"];
+      if (value !== "") {
+        qrLines.push(`${label}: ${value}`);
+      }
+    });
 
-      fields.forEach(([label, id]) => {
-        const value = String(
-          getStudentValue(student, id) ?? ""
-        ).trim();
-
-        // Excel-де ақпарат жоқ болса — QR-ға қоспаймыз
-        if (value !== "") {
-          qrLines.push(`${label}: ${value}`);
-        }
-      });
-
-      return qrLines.join("\n");
-    };
+    return qrLines.join("\n");
   };
 
   // =========================================================
@@ -485,6 +462,10 @@ function App() {
             width: 500,
             margin: 1,
             errorCorrectionLevel: "H",
+            color: {
+              dark: "#000000",
+              light: "#ffffff",
+            },
           }
         );
 
@@ -557,14 +538,10 @@ function App() {
 
     if (!editorRef.current) return;
 
-    const rect =
-      editorRef.current.getBoundingClientRect();
+    const rect = editorRef.current.getBoundingClientRect();
 
-    const scaleX =
-      canvasSize.width / rect.width;
-
-    const scaleY =
-      canvasSize.height / rect.height;
+    const scaleX = canvasSize.width / rect.width;
+    const scaleY = canvasSize.height / rect.height;
 
     const element = elements.find(
       (item) => item.id === id
@@ -590,14 +567,10 @@ function App() {
   const moveDrag = (event) => {
     if (!dragging || !editorRef.current) return;
 
-    const rect =
-      editorRef.current.getBoundingClientRect();
+    const rect = editorRef.current.getBoundingClientRect();
 
-    const scaleX =
-      canvasSize.width / rect.width;
-
-    const scaleY =
-      canvasSize.height / rect.height;
+    const scaleX = canvasSize.width / rect.width;
+    const scaleY = canvasSize.height / rect.height;
 
     let x =
       (event.clientX - rect.left) * scaleX -
@@ -804,7 +777,6 @@ function App() {
     student,
     backgroundImage
   ) => {
-    // 3x render: PDF/print quality is much better.
     const SCALE = 4;
 
     const canvas = document.createElement("canvas");
@@ -826,11 +798,17 @@ function App() {
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
 
-    // White base
+    // Ақ фон
     ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Diploma background
+    ctx.fillRect(
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+
+    // Диплом фоны
     ctx.drawImage(
       backgroundImage,
       0,
@@ -840,7 +818,7 @@ function App() {
     );
 
     // =======================================================
-    // QR — large source image, same physical size
+    // QR
     // =======================================================
 
     let qrImage = null;
@@ -849,25 +827,29 @@ function App() {
       (element) => element.id === "qr"
     );
 
-    if (qrElement && qrElement.visible !== false) {
+    if (
+      qrElement &&
+      qrElement.visible !== false
+    ) {
       const qrText = getQrText(student);
 
       if (qrText) {
-        const qrDataUrl = await QRCode.toDataURL(
-          qrText,
-          {
-            // Large source makes the small QR modules crisp in print.
-            width: 1800,
-            margin: 1,
-            errorCorrectionLevel: "H",
-            color: {
-              dark: "#000000",
-              light: "#ffffff",
-            },
-          }
-        );
+        const qrDataUrl =
+          await QRCode.toDataURL(
+            qrText,
+            {
+              width: 1800,
+              margin: 1,
+              errorCorrectionLevel: "H",
+              color: {
+                dark: "#000000",
+                light: "#ffffff",
+              },
+            }
+          );
 
-        qrImage = await loadQrImage(qrDataUrl);
+        qrImage =
+          await loadQrImage(qrDataUrl);
       }
     }
 
@@ -876,26 +858,36 @@ function App() {
     // =======================================================
 
     for (const element of elements) {
-      if (element.visible === false) continue;
-
-      // "Түрі" және "Жүлделі орын" диплом бетіне шықпайды.
-      // Бірақ олардың мәліметтері QR-кодтың ішінде қалады.
-      if (element.id === "type" || element.id === "place") {
+      if (element.visible === false) {
         continue;
       }
 
-      // ---------------- QR ----------------
+      // Түрі және Жүлделі орын диплом бетіне шықпайды.
+      // Бірақ QR ішінде қалады.
+      if (
+        element.id === "type" ||
+        element.id === "place"
+      ) {
+        continue;
+      }
+
+      // =====================================================
+      // QR
+      // =====================================================
+
       if (element.id === "qr") {
         if (!qrImage) continue;
 
         const size =
-          (Number(element.qrSize) || 120) * SCALE;
+          (Number(element.qrSize) || 120) *
+          SCALE;
 
         const x = element.x * SCALE;
         const y = element.y * SCALE;
 
-        // QR modules should stay sharp.
         ctx.save();
+
+        // QR нүктелері бұлыңғыр болмауы үшін
         ctx.imageSmoothingEnabled = false;
 
         ctx.drawImage(
@@ -907,27 +899,42 @@ function App() {
         );
 
         ctx.restore();
+
         continue;
       }
 
-      // ---------------- TEXT ----------------
-      const text = getElementText(element, student);
+      // =====================================================
+      // TEXT
+      // =====================================================
+
+      const text =
+        getElementText(
+          element,
+          student
+        );
 
       if (!text) continue;
 
       ctx.save();
 
       const weight =
-        element.fontWeight === "bold" ? "bold" : "normal";
+        element.fontWeight === "bold"
+          ? "bold"
+          : "normal";
 
       const style =
-        element.fontStyle === "italic" ? "italic" : "normal";
+        element.fontStyle === "italic"
+          ? "italic"
+          : "normal";
 
       ctx.font =
         `${style} ${weight} ${element.fontSize * SCALE}px "${element.fontFamily}"`;
 
       ctx.fillStyle = element.color;
-      ctx.textAlign = element.textAlign || "center";
+
+      ctx.textAlign =
+        element.textAlign || "center";
+
       ctx.textBaseline = "middle";
 
       ctx.fillText(
@@ -953,12 +960,14 @@ function App() {
     setPdfProgress("");
 
     try {
+      // Excel тексеру
       if (!students.length) {
         throw new Error(
           "Алдымен Excel файлын жүктеңіз."
         );
       }
 
+      // Дизайн тексеру
       if (!designUrl) {
         throw new Error(
           "Алдымен диплом дизайнын жүктеңіз."
@@ -967,6 +976,7 @@ function App() {
 
       setPdfLoading(true);
 
+      // Шрифттер дайын болғанша күтеміз
       await document.fonts.ready;
 
       setPdfProgress(
@@ -995,6 +1005,10 @@ function App() {
       const pageHeight =
         isLandscape ? 210 : 297;
 
+      // =====================================================
+      // ӘР ОҚУШЫҒА БІР БЕТ
+      // =====================================================
+
       for (
         let i = 0;
         i < students.length;
@@ -1014,15 +1028,15 @@ function App() {
           );
 
         /*
-          JPEG қолданамыз:
-          500+ диплом кезінде PDF көлемі тым үлкен болып
-          кетпеуі үшін.
+          PNG қолданамыз.
+          Бұл QR кодтың сапасын жақсы сақтайды.
         */
         const imageData =
           diplomaCanvas.toDataURL(
             "image/png"
           );
 
+        // Бірінші беттен кейін жаңа бет
         if (i > 0) {
           pdf.addPage(
             "a4",
@@ -1032,9 +1046,12 @@ function App() {
           );
         }
 
+        /*
+          Нақты PNG ретінде саламыз.
+        */
         pdf.addImage(
           imageData,
-          "JPEG",
+          "PNG",
           0,
           0,
           pageWidth,
@@ -1043,22 +1060,28 @@ function App() {
           "FAST"
         );
 
-        /*
-          Canvas-ты босатамыз.
-        */
+        // Canvas жадысын босату
         diplomaCanvas.width = 1;
         diplomaCanvas.height = 1;
 
         /*
-          Браузерге демалу үшін әр 10 беттен кейін
-          кішкене кідіріс.
+          Браузерге демалу үшін
+          әр 5 беттен кейін кішкене кідіріс.
         */
-        if (i % 5 === 0 && i !== 0) {
-          await new Promise((resolve) =>
-            setTimeout(resolve, 50)
+        if (
+          i % 5 === 0 &&
+          i !== 0
+        ) {
+          await new Promise(
+            (resolve) =>
+              setTimeout(
+                resolve,
+                50
+              )
           );
         }
       }
+
       setPdfProgress(
         "📄 PDF дайын! Файл сақталып жатыр..."
       );
@@ -1117,7 +1140,9 @@ function App() {
         firstStudent
       );
 
-    if (element.id === "qr") {
+    if (
+      element.id === "qr"
+    ) {
       return qrPreview ? (
         <img
           src={qrPreview}
@@ -1132,7 +1157,10 @@ function App() {
       );
     }
 
-    return text || element.label;
+    return (
+      text ||
+      element.label
+    );
   };
 
   // =========================================================
@@ -1169,14 +1197,17 @@ function App() {
       </header>
 
       <main className="main-container">
+
         {/* =================================================
             WORKSPACE
         ================================================= */}
 
         <section className="workspace">
+
           {/* FILES */}
 
           <div className="steps-card">
+
             <div className="step-box">
               <div className="step-number">
                 1
@@ -1240,6 +1271,7 @@ function App() {
                 </b>
 
                 <div className="orientation-buttons">
+
                   <button
                     className={
                       orientation ===
@@ -1271,16 +1303,20 @@ function App() {
                   >
                     ▯ Кітапша
                   </button>
+
                 </div>
               </div>
             </div>
+
           </div>
 
           {/* EDITOR */}
 
           {designUrl ? (
             <div className="editor-card">
+
               <div className="editor-header">
+
                 <div>
                   <h2>
                     🎨 Диплом макеті
@@ -1301,11 +1337,13 @@ function App() {
                     ? "Альбом"
                     : "Кітапша"}
                 </div>
+
               </div>
 
               {/* EDITOR STAGE */}
 
               <div className="editor-stage">
+
                 <div
                   ref={editorRef}
                   className="editor"
@@ -1318,6 +1356,7 @@ function App() {
                       `${canvasSize.width}/${canvasSize.height}`,
                   }}
                 >
+
                   {/* BACKGROUND */}
 
                   <img
@@ -1340,6 +1379,7 @@ function App() {
 
                   {elements.map(
                     (element) => {
+
                       if (
                         element.visible ===
                         false
@@ -1358,13 +1398,17 @@ function App() {
                           }
                           className={
                             "design-element " +
-                            (selected
-                              ? "selected-element"
-                              : "") +
-                            (element.id ===
-                            "qr"
-                              ? " qr-element"
-                              : "")
+                            (
+                              selected
+                                ? "selected-element"
+                                : ""
+                            ) +
+                            (
+                              element.id ===
+                              "qr"
+                                ? " qr-element"
+                                : ""
+                            )
                           }
                           style={{
                             left:
@@ -1408,6 +1452,7 @@ function App() {
                             )
                           }
                         >
+
                           {renderPreviewElement(
                             element
                           )}
@@ -1417,14 +1462,18 @@ function App() {
                               +
                             </span>
                           )}
+
                         </div>
                       );
                     }
                   )}
+
                 </div>
+
               </div>
 
               <div className="editor-help">
+
                 <span>
                   🖱️ Мышка — жылжыту
                 </span>
@@ -1440,10 +1489,14 @@ function App() {
                 <span>
                   🎯 Крестик — центр
                 </span>
+
               </div>
+
             </div>
           ) : (
+
             <div className="empty-editor">
+
               <div className="empty-icon">
                 🖼️
               </div>
@@ -1457,7 +1510,9 @@ function App() {
                 PNG немесе JPG
                 файлды таңдаңыз.
               </p>
+
             </div>
+
           )}
 
           {/* ERROR */}
@@ -1472,8 +1527,11 @@ function App() {
 
           {students.length > 0 &&
             designUrl && (
+
               <div className="pdf-card">
+
                 <div>
+
                   <h2>
                     📄 Барлық дипломды
                     жасау
@@ -1485,6 +1543,7 @@ function App() {
                     {students.length}{" "}
                     A4 бет → бір PDF
                   </p>
+
                 </div>
 
                 <button
@@ -1506,15 +1565,21 @@ function App() {
                     {pdfProgress}
                   </div>
                 )}
+
               </div>
+
             )}
 
           {/* EXCEL TABLE */}
 
           {students.length > 0 && (
+
             <div className="table-card">
+
               <div className="table-header">
+
                 <div>
+
                   <h2>
                     📊 Excel мәліметтері
                   </h2>
@@ -1528,13 +1593,19 @@ function App() {
                     </b>{" "}
                     оқушы
                   </span>
+
                 </div>
+
               </div>
 
               <div className="table-wrapper">
+
                 <table>
+
                   <thead>
+
                     <tr>
+
                       {Object.keys(
                         students[0]
                       ).map(
@@ -1550,10 +1621,13 @@ function App() {
                           </th>
                         )
                       )}
+
                     </tr>
+
                   </thead>
 
                   <tbody>
+
                     {students
                       .slice(
                         0,
@@ -1564,17 +1638,20 @@ function App() {
                           row,
                           index
                         ) => (
+
                           <tr
                             key={
                               index
                             }
                           >
+
                             {Object.keys(
                               students[0]
                             ).map(
                               (
                                 column
                               ) => (
+
                                 <td
                                   key={
                                     column
@@ -1586,28 +1663,41 @@ function App() {
                                     ]
                                   }
                                 </td>
+
                               )
                             )}
+
                           </tr>
+
                         )
                       )}
+
                   </tbody>
+
                 </table>
+
               </div>
 
               {students.length >
                 10 && (
+
                 <div className="table-more">
+
                   Тағы{" "}
                   {students.length -
                     10}{" "}
                   оқушы бар.
                   PDF жасағанда
                   барлығы өңделеді.
+
                 </div>
+
               )}
+
             </div>
+
           )}
+
         </section>
 
         {/* =================================================
@@ -1615,8 +1705,11 @@ function App() {
         ================================================= */}
 
         <aside className="settings-panel">
+
           <div className="settings-title">
+
             <div>
+
               <h2>
                 ⚙️ Баптау
               </h2>
@@ -1624,18 +1717,22 @@ function App() {
               <span>
                 Таңдалған элемент
               </span>
+
             </div>
 
             <div className="element-icon">
               ✦
             </div>
+
           </div>
 
           {/* ELEMENT SELECT */}
 
           <div className="element-list">
+
             {elements.map(
               (element) => (
+
                 <button
                   key={
                     element.id
@@ -1652,21 +1749,31 @@ function App() {
                     )
                   }
                 >
-                  {element.label}
+                  {
+                    element.label
+                  }
                 </button>
+
               )
             )}
+
           </div>
 
           <div className="selected-name">
-            {currentElement?.label}
+            {
+              currentElement?.label
+            }
           </div>
 
           {/* X Y */}
 
           <div className="coordinates">
+
             <div className="coordinate">
-              <span>X</span>
+
+              <span>
+                X
+              </span>
 
               <input
                 type="number"
@@ -1683,10 +1790,14 @@ function App() {
                   )
                 }
               />
+
             </div>
 
             <div className="coordinate">
-              <span>Y</span>
+
+              <span>
+                Y
+              </span>
 
               <input
                 type="number"
@@ -1703,7 +1814,9 @@ function App() {
                   )
                 }
               />
+
             </div>
+
           </div>
 
           <button
@@ -1720,7 +1833,11 @@ function App() {
           {currentElement?.id !==
             "qr" && (
             <>
+
+              {/* FONT */}
+
               <div className="setting-group">
+
                 <label>
                   Шрифт
                 </label>
@@ -1736,17 +1853,26 @@ function App() {
                     )
                   }
                 >
-                  <option value="Arial">Arial</option>
+
+                  <option value="Arial">
+                    Arial
+                  </option>
 
                   <option value="Times New Roman">
                     Times New Roman
                   </option>
 
-                  <option value="Georgia">Georgia</option>
+                  <option value="Georgia">
+                    Georgia
+                  </option>
 
-                  <option value="Verdana">Verdana</option>
+                  <option value="Verdana">
+                    Verdana
+                  </option>
 
-                  <option value="Tahoma">Tahoma</option>
+                  <option value="Tahoma">
+                    Tahoma
+                  </option>
 
                   <option value="Trebuchet MS">
                     Trebuchet MS
@@ -1807,13 +1933,17 @@ function App() {
                   <option value="Nunito">
                     Nunito
                   </option>
+
                 </select>
+
               </div>
 
               {/* SIZE */}
 
               <div className="setting-group">
+
                 <div className="label-line">
+
                   <label>
                     Өлшем
                   </label>
@@ -1824,6 +1954,7 @@ function App() {
                     }
                     px
                   </b>
+
                 </div>
 
                 <input
@@ -1842,16 +1973,19 @@ function App() {
                     )
                   }
                 />
+
               </div>
 
               {/* COLOR */}
 
               <div className="setting-group">
+
                 <label>
                   Мәтін түсі
                 </label>
 
                 <div className="color-row">
+
                   <input
                     type="color"
                     value={
@@ -1870,17 +2004,21 @@ function App() {
                       currentElement?.color
                     }
                   </span>
+
                 </div>
+
               </div>
 
               {/* B I */}
 
               <div className="setting-group">
+
                 <label>
                   Стиль
                 </label>
 
                 <div className="style-buttons">
+
                   <button
                     className={
                       currentElement?.fontWeight ===
@@ -1898,7 +2036,9 @@ function App() {
                       )
                     }
                   >
-                    <b>B</b>
+                    <b>
+                      B
+                    </b>
                   </button>
 
                   <button
@@ -1918,14 +2058,19 @@ function App() {
                       )
                     }
                   >
-                    <i>I</i>
+                    <i>
+                      I
+                    </i>
                   </button>
+
                 </div>
+
               </div>
 
               {/* UPPERCASE */}
 
               <div className="setting-group">
+
                 <label>
                   Әріп форматы
                 </label>
@@ -1953,16 +2098,19 @@ function App() {
                   мәтін PDF-те толық
                   БАС ӘРІППЕН шығады.
                 </small>
+
               </div>
 
               {/* ALIGN */}
 
               <div className="setting-group">
+
                 <label>
                   Туралау
                 </label>
 
                 <div className="align-buttons">
+
                   <button
                     className={
                       currentElement?.textAlign ===
@@ -2013,8 +2161,11 @@ function App() {
                   >
                     ≡
                   </button>
+
                 </div>
+
               </div>
+
             </>
           )}
 
@@ -2022,8 +2173,11 @@ function App() {
 
           {currentElement?.id ===
             "qr" && (
+
             <div className="setting-group">
+
               <div className="label-line">
+
                 <label>
                   QR өлшемі
                 </label>
@@ -2034,6 +2188,7 @@ function App() {
                   }
                   px
                 </b>
+
               </div>
 
               <input
@@ -2056,41 +2211,53 @@ function App() {
               <button
                 className="qr-button"
                 onClick={async () => {
-                  if (!firstStudent)
+
+                  if (!firstStudent) {
                     return;
+                  }
 
                   try {
+
                     const qr =
                       await QRCode.toDataURL(
                         getQrText(
                           firstStudent
                         ),
                         {
-                          width: 500,
+                          width: 1800,
                           margin: 1,
                           errorCorrectionLevel:
                             "H",
+                          color: {
+                            dark: "#000000",
+                            light: "#ffffff",
+                          },
                         }
                       );
 
                     setQrPreview(qr);
-                  } catch (
-                    error
-                  ) {
+
+                  } catch (error) {
+
                     console.error(
                       error
                     );
+
                   }
+
                 }}
               >
                 🔳 QR жаңарту
               </button>
+
             </div>
+
           )}
 
           {/* HELP */}
 
           <div className="keyboard-box">
+
             <b>
               ⌨️ Дәл орналастыру
             </b>
@@ -2113,8 +2280,11 @@ function App() {
               🎯 Крестик — дипломның
               нақты ортасы.
             </p>
+
           </div>
+
         </aside>
+
       </main>
     </div>
   );
