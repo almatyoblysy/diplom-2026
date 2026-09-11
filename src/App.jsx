@@ -15,6 +15,23 @@ function App() {
   const [designUrl, setDesignUrl] = useState("");
 
   // =========================================================
+  // GOOGLE SHEETS / STABLE QR
+  // =========================================================
+
+  const [googleScriptUrl, setGoogleScriptUrl] = useState(
+    () => localStorage.getItem("diploma_google_script_url") || ""
+  );
+  const [googleAdminKey, setGoogleAdminKey] = useState(
+    () => localStorage.getItem("diploma_google_admin_key") || "DIPLOM-2026-CHANGE-ME"
+  );
+  const [googleSheetUrl, setGoogleSheetUrl] = useState(
+    () => localStorage.getItem("diploma_google_sheet_url") || ""
+  );
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleStatus, setGoogleStatus] = useState("");
+  const [stableQrMode, setStableQrMode] = useState(true);
+
+  // =========================================================
   // A4
   // =========================================================
 
@@ -130,10 +147,25 @@ function App() {
     },
 
     {
+      id: "grade",
+      label: "Сыныбы",
+      x: 561,
+      y: 515,
+      fontFamily: "Arial",
+      fontSize: 20,
+      fontWeight: "normal",
+      fontStyle: "normal",
+      color: "#000000",
+      textAlign: "center",
+      uppercase: false,
+      visible: true,
+    },
+
+    {
       id: "nomination",
       label: "Номинация",
       x: 561,
-      y: 535,
+      y: 555,
       fontFamily: "Arial",
       fontSize: 20,
       fontWeight: "normal",
@@ -218,6 +250,25 @@ function App() {
   // =========================================================
 
   useEffect(() => {
+    if (googleScriptUrl) {
+      localStorage.setItem("diploma_google_script_url", googleScriptUrl.trim());
+    } else {
+      localStorage.removeItem("diploma_google_script_url");
+    }
+
+    if (googleAdminKey) {
+      localStorage.setItem("diploma_google_admin_key", googleAdminKey.trim());
+    } else {
+      localStorage.removeItem("diploma_google_admin_key");
+    }
+    if (googleSheetUrl) {
+      localStorage.setItem("diploma_google_sheet_url", googleSheetUrl.trim());
+    } else {
+      localStorage.removeItem("diploma_google_sheet_url");
+    }
+  }, [googleScriptUrl, googleAdminKey, googleSheetUrl]);
+
+  useEffect(() => {
     const fontUrl =
       "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@400;600;700&family=Lora:wght@400;600;700&family=Merriweather:wght@400;700&family=Montserrat:wght@400;600;700&family=Nunito:wght@400;600;700&family=Open+Sans:wght@400;600;700&family=Oswald:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&family=Raleway:wght@400;600;700&display=swap";
 
@@ -240,6 +291,7 @@ function App() {
     leader: "Жетекшісінің аты-жөні",
     name: "Оқушының аты-жөні",
     registration: "Тіркеу №",
+    grade: "Сыныбы",
     competition: "Байқау атауы",
     subject: "Пәні",
     nomination: "Номинация",
@@ -254,6 +306,7 @@ function App() {
     leader: ["Жетекшісінің аты-жөні", "Жетекшінің аты-жөні", "Жетекші", "Жетекшісі"],
     name: ["Оқушының аты-жөні", "Оқушы", "Аты-жөні", "ФИО"],
     registration: ["Тіркеу №", "Тіркеу нөмірі", "Тіркеу номері", "Регистрационный №", "Рег. №"],
+    grade: ["Сыныбы", "Сынып", "Сынып нөмірі", "Класс", "Grade", "Class"],
     competition: ["Байқау атауы", "Байқау", "Конкурс атауы", "Конкурс"],
     subject: ["Пәні", "Пән", "Предмет"],
     nomination: ["Номинация", "Номинациясы"],
@@ -291,6 +344,148 @@ function App() {
   const getStudentValue = (student, id) => {
     if (!student) return "";
     return findColumn(student, columnMap[id], columnAliases[id] || []);
+  };
+
+  // =========================================================
+  // GOOGLE SHEETS
+  // =========================================================
+
+  const getGoogleEndpoint = () => {
+    return String(googleScriptUrl || "").trim().replace(/\/+$/, "");
+  };
+
+  const extractSpreadsheetId = (value) => {
+    const text = String(value || "").trim();
+    if (!text) return "";
+    const match = text.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+    if (match) return match[1];
+    return /^[a-zA-Z0-9-_]{20,}$/.test(text) ? text : "";
+  };
+
+  const getGoogleSpreadsheetId = () => extractSpreadsheetId(googleSheetUrl);
+
+  const buildStableQrUrl = (student) => {
+    const endpoint = getGoogleEndpoint();
+    const registration = cleanStudentValue(
+      getStudentValue(student, "registration")
+    );
+    const spreadsheetId = getGoogleSpreadsheetId();
+
+    if (!endpoint || !registration || !spreadsheetId) return "";
+
+    const separator = endpoint.includes("?") ? "&" : "?";
+    return `${endpoint}${separator}sheet=${encodeURIComponent(spreadsheetId)}&reg=${encodeURIComponent(registration)}`;
+  };
+
+  const loadGoogleSheets = () => {
+    const endpoint = getGoogleEndpoint();
+
+    if (!endpoint) {
+      setErrorMessage(
+        "Google Apps Script сілтемесін енгізіңіз. Ол Google Sheets деректерін оқуға және QR-ды тіркеу №-мен тұрақты байланыстыруға керек."
+      );
+      return;
+    }
+
+    setGoogleLoading(true);
+    setGoogleStatus("⏳ Google Sheets деректері жүктеліп жатыр...");
+    setErrorMessage("");
+
+    const callbackName = `diplomaSheetsCallback_${Date.now()}_${Math.floor(
+      Math.random() * 10000
+    )}`;
+
+    const script = document.createElement("script");
+    const separator = endpoint.includes("?") ? "&" : "?";
+
+    const cleanup = () => {
+      try {
+        script.remove();
+      } catch (_) {}
+      try {
+        delete window[callbackName];
+      } catch (_) {}
+    };
+
+    const timeout = window.setTimeout(() => {
+      cleanup();
+      setGoogleLoading(false);
+      setGoogleStatus("");
+      setErrorMessage(
+        "Google Sheets-тен жауап келмеді. Apps Script Web App URL-ін және оның қолжетімділігін тексеріңіз."
+      );
+    }, 20000);
+
+    window[callbackName] = (payload) => {
+      window.clearTimeout(timeout);
+      cleanup();
+
+      try {
+        if (!payload?.ok) {
+          throw new Error(payload?.error || "Google Sheets деректері оқылмады.");
+        }
+
+        const rows = Array.isArray(payload.rows) ? payload.rows : [];
+
+        if (!rows.length) {
+          throw new Error("Google Sheets ішінде дерек жолдары табылмады.");
+        }
+
+        const validRows = rows.filter((row) =>
+          Object.values(row || {}).some((value) => cleanStudentValue(value))
+        );
+
+        if (!validRows.length) {
+          throw new Error("Google Sheets деректері бос.");
+        }
+
+        setStudents(validRows);
+        setExcelFile(null);
+        setGoogleStatus(
+          `✅ Google Sheets жаңартылды: ${validRows.length} жол`
+        );
+        setPdfProgress(
+          `🌐 Google Sheets-тен ${validRows.length} оқушы жүктелді.`
+        );
+      } catch (error) {
+        console.error("Google Sheets callback error:", error);
+        setGoogleStatus("");
+        setErrorMessage(
+          "Google Sheets оқу кезінде қате: " +
+            (error?.message || String(error))
+        );
+      } finally {
+        setGoogleLoading(false);
+      }
+    };
+
+    script.onerror = () => {
+      window.clearTimeout(timeout);
+      cleanup();
+      setGoogleLoading(false);
+      setGoogleStatus("");
+      setErrorMessage(
+        "Google Apps Script сілтемесіне қосылу мүмкін болмады. Web App-ті Anyone ретінде жарияланғанын тексеріңіз."
+      );
+    };
+
+    const adminKey = String(googleAdminKey || "").trim();
+    const spreadsheetId = getGoogleSpreadsheetId();
+
+    if (!spreadsheetId) {
+      cleanup();
+      setGoogleLoading(false);
+      setGoogleStatus("");
+      setErrorMessage("Google Sheets сілтемесін енгізіңіз (немесе Spreadsheet ID). ");
+      return;
+    }
+
+    script.src =
+      `${endpoint}${separator}action=data&key=${encodeURIComponent(
+        adminKey
+      )}&sheet=${encodeURIComponent(spreadsheetId)}&callback=${encodeURIComponent(callbackName)}&t=${Date.now()}`;
+
+    document.body.appendChild(script);
   };
 
   // =========================================================
@@ -422,24 +617,63 @@ function App() {
   const getQrText = (student) => {
     if (!student) return "";
 
-    const qrFields = [
-      ["Аудан", getStudentValue(student, "district")],
-      ["Мекеме атауы", getStudentValue(student, "institution")],
-      ["Жетекшісінің аты-жөні", getStudentValue(student, "leader")],
-      ["Оқушының аты-жөні", getStudentValue(student, "name")],
-      ["Тіркеу №", getStudentValue(student, "registration")],
-      ["Байқау атауы", getStudentValue(student, "competition")],
-      ["Пәні", getStudentValue(student, "subject")],
-      ["Номинация", getStudentValue(student, "nomination")],
-      ["Түрі", getStudentValue(student, "type")],
-      ["Жүлделі орын", getStudentValue(student, "place")],
-      ["Өткізу бұйрық номері/күні", getStudentValue(student, "order")],
+    // Тұрақты QR режимінде QR-дың ішіне деректерді тікелей жазбаймыз.
+    // QR тек тіркеу нөміріне байланған тұрақты Web App сілтемесін сақтайды.
+    // Кейін Google Sheets-та аты-жөні өзгерсе де, бұрын басылған QR өзгермейді.
+    if (stableQrMode) {
+      const stableUrl = buildStableQrUrl(student);
+      if (stableUrl) return stableUrl;
+    }
+
+    // =======================================================
+    // QR: дипломдағы негізгі 9 өріс + Excel-дегі қалған
+    // барлық толтырылған бағандар.
+    // Бос ұяшықтар QR-ға мүлде қосылмайды.
+    // =======================================================
+    const mainQrFields = [
+      ["Аудан", "district"],
+      ["Мекеме атауы", "institution"],
+      ["Жетекшісінің аты-жөні", "leader"],
+      ["Оқушының аты-жөні", "name"],
+      ["Тіркеу №", "registration"],
+      ["Байқау атауы", "competition"],
+      ["Сыныбы", "grade"],
+      ["Пәні", "subject"],
+      ["Номинация", "nomination"],
+      ["Түрі", "type"],
+      ["Жүлделі орын", "place"],
+      ["Өткізу бұйрық номері/күні", "order"],
     ];
 
-    return qrFields
-      .filter(([, value]) => String(value ?? "").trim() !== "")
-      .map(([label, value]) => `${label}: ${String(value).trim()}`)
-      .join("\n");
+    const usedHeaders = new Set();
+    const lines = [];
+
+    for (const [label, id] of mainQrFields) {
+      const value = cleanStudentValue(getStudentValue(student, id));
+      if (!value) continue;
+      lines.push(`${label}: ${value}`);
+
+      const wanted = normalizeHeader(columnMap[id]);
+      usedHeaders.add(wanted);
+      for (const alias of columnAliases[id] || []) {
+        usedHeaders.add(normalizeHeader(alias));
+      }
+    }
+
+    // Excel-дегі негізгі өрістерден бөлек қалған барлық бағандарды
+    // QR ішіне автоматты түрде қосамыз. Бұл код Excel құрылымы
+    // кейін өзгерсе де жұмысын жалғастырады.
+    for (const key of Object.keys(student)) {
+      const value = cleanStudentValue(student[key]);
+      if (!value) continue;
+
+      const normalizedKey = normalizeHeader(key);
+      if (usedHeaders.has(normalizedKey)) continue;
+
+      lines.push(`${String(key).trim()}: ${value}`);
+    }
+
+    return lines.join("\n");
   };
 
   // =========================================================
@@ -478,7 +712,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [students]);
+  }, [students, elements]);
 
   // =========================================================
   // ELEMENT UPDATE
@@ -1094,6 +1328,10 @@ function App() {
     if (element.visible === false) return false;
     if (element.id === "type") return false;
     if (element.id === "place") return false;
+    // QR мен тіркеу № алдын ала дипломда басылып қояды.
+    // Екінші кезеңдегі overlay оларды қайта баспайды.
+    if (element.id === "qr") return false;
+    if (element.id === "registration") return false;
     return true;
   };
 
@@ -1348,7 +1586,7 @@ function App() {
           </h1>
 
           <div className="subtitle">
-            Excel → Дизайн → QR → Бір PDF
+            Excel / Google Sheets → Дизайн → Тұрақты QR → PDF
           </div>
         </div>
 
@@ -1465,6 +1703,88 @@ function App() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* =================================================
+              GOOGLE SHEETS / ТҰРАҚТЫ QR
+          ================================================= */}
+          <div className="google-card">
+            <div className="google-card-header">
+              <div>
+                <h2>🌐 Google Sheets + тұрақты QR</h2>
+                <p>
+                  QR нақты <b>Google Sheets + Тіркеу №</b>-ге тұрақты байланады. Нәтиже
+                  шыққаннан кейін Google Sheets-ті жаңартсаңыз, бұрын басылып
+                  қойған QR өзгермейді — ол сол тіркеудің жаңа деректерін
+                  көрсетеді.
+                </p>
+              </div>
+              <div className="google-badge">2 КЕЗЕҢ</div>
+            </div>
+
+            <div className="google-grid">
+              <div className="google-input-stack">
+                <label className="google-url-field">
+                  <span>Google Apps Script Web App URL</span>
+                  <input
+                    type="url"
+                    value={googleScriptUrl}
+                    onChange={(e) => setGoogleScriptUrl(e.target.value)}
+                    placeholder="https://script.google.com/macros/s/AKfycbz04YHXZWjxwQi7btNC0DCTzB-4hZTjQyKl3q2co4zhavzh1SARFskIiar8upHVbrwS/exec"
+                  />
+                </label>
+
+                <label className="google-url-field">
+                  <span>Google Sheets сілтемесі</span>
+                  <input
+                    type="url"
+                    value={googleSheetUrl}
+                    onChange={(e) => setGoogleSheetUrl(e.target.value)}
+                    placeholder="https://docs.google.com/spreadsheets/d/.../edit"
+                  />
+                </label>
+
+                <label className="google-url-field">
+                  <span>Admin key (Apps Script ішіндегі CONFIG.ADMIN_KEY-мен бірдей)</span>
+                  <input
+                    type="text"
+                    value={googleAdminKey}
+                    onChange={(e) => setGoogleAdminKey(e.target.value)}
+                    placeholder="DIPLOM-2026-CHANGE-ME"
+                  />
+                </label>
+              </div>
+
+              <button
+                className="google-load-button"
+                onClick={loadGoogleSheets}
+                disabled={googleLoading}
+              >
+                {googleLoading
+                  ? "⏳ Жүктелуде..."
+                  : "🔄 Google Sheets-тен жаңарту"}
+              </button>
+            </div>
+
+            <div className="google-mode-row">
+              <button
+                className={
+                  stableQrMode
+                    ? "google-mode active"
+                    : "google-mode"
+                }
+                onClick={() => setStableQrMode(true)}
+              >
+                🔐 ТҰРАҚТЫ QR — ТІРКЕУ №
+              </button>
+              <span className="google-mode-hint">
+                QR қайта жасалмайды. Аты-жөні кейін өзгерсе де QR сол күйі қалады.
+              </span>
+            </div>
+
+            {googleStatus && (
+              <div className="google-status">{googleStatus}</div>
+            )}
           </div>
 
           {/* EDITOR */}
