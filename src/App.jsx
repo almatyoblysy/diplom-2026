@@ -1015,7 +1015,8 @@ function App() {
     student,
     backgroundImage
   ) => {
-    // 3x render: PDF/print quality is much better.
+    // 3x render: жоғары сапалы баспа үшін.
+    // Canvas тікелей jsPDF-ке беріледі — үлкен toDataURL string жасамаймыз.
     const SCALE = 3;
 
     const canvas = document.createElement("canvas");
@@ -1221,14 +1222,11 @@ function App() {
           );
 
         /*
-          JPEG қолданамыз:
-          500+ диплом кезінде PDF көлемі тым үлкен болып
-          кетпеуі үшін.
+          Canvas-ты тікелей jsPDF-ке береміз.
+          Бұрынғы toDataURL() үлкен base64 string жасап,
+          35/200/300 бетте "Invalid string length" қатесін
+          туғызуы мүмкін еді. 3x canvas баспа сапасын жоғары ұстайды.
         */
-        const imageData =
-          diplomaCanvas.toDataURL(
-            "image/png"
-          );
 
         if (i > 0) {
           pdf.addPage(
@@ -1240,14 +1238,14 @@ function App() {
         }
 
         pdf.addImage(
-          imageData,
-          "PNG",
+          diplomaCanvas,
+          "JPEG",
           0,
           0,
           pageWidth,
           pageHeight,
           undefined,
-          "NONE"
+          "MEDIUM"
         );
 
         /*
@@ -1328,10 +1326,7 @@ function App() {
     if (element.visible === false) return false;
     if (element.id === "type") return false;
     if (element.id === "place") return false;
-    // QR мен тіркеу № алдын ала дипломда басылып қояды.
-    // Екінші кезеңдегі overlay оларды қайта баспайды.
-    if (element.id === "qr") return false;
-    if (element.id === "registration") return false;
+    // QR және Тіркеу № де overlay PDF-ке міндетті түрде түседі.
     return true;
   };
 
@@ -1405,6 +1400,7 @@ function App() {
   };
 
   const createOverlayCanvas = async (student) => {
+    // Overlay да баспаға жоғары сапада дайындалады.
     const SCALE = 3;
 
     const canvas = document.createElement("canvas");
@@ -1468,7 +1464,6 @@ function App() {
         );
 
         const overlayCanvas = await createOverlayCanvas(student);
-        const imageData = overlayCanvas.toDataURL("image/png");
 
         if (i > 0) {
           pdf.addPage(
@@ -1478,21 +1473,21 @@ function App() {
         }
 
         pdf.addImage(
-          imageData,
+          overlayCanvas,
           "PNG",
           0,
           0,
           pageWidth,
           pageHeight,
           undefined,
-          "NONE"
+          "FAST"
         );
 
         overlayCanvas.width = 1;
         overlayCanvas.height = 1;
 
-        if (i % 10 === 0 && i !== 0) {
-          await new Promise((resolve) => setTimeout(resolve, 20));
+        if (i % 5 === 0 && i !== 0) {
+          await new Promise((resolve) => setTimeout(resolve, 40));
         }
       }
 
