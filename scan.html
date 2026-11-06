@@ -1,100 +1,150 @@
 <!DOCTYPE html>
 <html lang="kk">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Дипломды QR арқылы тексеру</title>
-  <script src="https://unpkg.com/html5-qrcode"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f2f5f9;
-      text-align: center;
-      padding: 25px 15px;
-    }
-    .box {
-      max-width: 500px;
-      margin: auto;
-      background: white;
-      padding: 25px;
-      border-radius: 15px;
-      box-shadow: 0 3px 15px #0001;
-    }
-    h2 { color: #0a3d62; }
-    #reader { margin-top: 20px; }
-    input {
-      width: 90%;
-      padding: 12px;
-      margin-top: 15px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-    }
-    button {
-      padding: 12px 22px;
-      margin-top: 12px;
-      background: #0a3d62;
-      color: white;
-      border: 0;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    #status { margin-top: 15px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Дипломды QR арқылы тексеру</title>
+<script src="https://unpkg.com/html5-qrcode"></script>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  padding: 15px;
+  background: #f4f6f8;
+}
+h2 { color: #123b5d; }
+button {
+  padding: 13px 20px;
+  margin: 8px;
+  border: none;
+  border-radius: 8px;
+  background: #123b5d;
+  color: white;
+  font-size: 16px;
+}
+input {
+  width: 90%;
+  padding: 12px;
+  margin: 10px 0;
+}
+#reader {
+  max-width: 450px;
+  margin: 15px auto;
+}
+</style>
 </head>
 <body>
-  <div class="box">
-    <h2>🏆 Дипломды тексеру</h2>
-    <p>Бұрын берілген дипломның QR-кодын сканерлеңіз</p>
 
-    <div id="reader"></div>
+<h2>Дипломды QR арқылы тексеру</h2>
+<p>QR-кодты камераға көрсетіңіз</p>
 
-    <p id="status">Камераны іске қосыңыз</p>
+<div id="reader"></div>
 
-    <input id="manual" placeholder="QR сілтемесін осында қойыңыз">
-    <br>
-    <button onclick="openOldQR(document.getElementById('manual').value)">
-      Тексеру
-    </button>
-  </div>
+<button onclick="switchCamera()">🔄 Камераны ауыстыру</button>
 
-  <script>
-    const NEW_URL =
-      "https://script.google.com/macros/s/AKfycbyqhZ00vStSKMSgisUyDOdTLRSf6Y5po50Dt2r7hCeRmcknmJNsfMOrYmadWJgCqiBA/exec";
+<hr>
 
-    function openOldQR(value) {
-      try {
-        const url = new URL(value.trim());
-        const sheet = url.searchParams.get("sheet");
-        const reg = url.searchParams.get("reg");
+<p>Немесе QR сілтемесін осында енгізіңіз:</p>
+<input id="manual" placeholder="QR сілтемесін қойыңыз">
+<br>
+<button onclick="openOldQR(document.getElementById('manual').value)">
+Тексеру
+</button>
 
-        if (!sheet || !reg) {
-          throw new Error("QR сілтемесінде sheet немесе reg жоқ");
-        }
+<script>
+const NEW_URL = "https://script.google.com/macros/s/AKfycbyqhZ00vStSKMSgisUyDOdTLRSf6Y5po50Dt2r7hCeRmcknmJNsfMOrYmadWJgCqiBA/exec";
 
-        const target = new URL(NEW_URL);
-        target.searchParams.set("sheet", sheet);
-        target.searchParams.set("reg", reg);
+let html5QrCode;
+let cameras = [];
+let currentCamera = 0;
+let isScanning = false;
 
-        document.getElementById("status").innerText =
-          "Диплом ашылуда...";
+function openOldQR(value) {
+  try {
+    const url = new URL(value.trim());
+    const sheet = url.searchParams.get("sheet");
+    const reg = url.searchParams.get("reg");
 
-        window.location.href = target.toString();
-      } catch (e) {
-        document.getElementById("status").innerText =
-          "Қате: QR сілтемесін тексеріңіз.";
-      }
+    if (!sheet || !reg) {
+      alert("QR сілтемесі дұрыс емес!");
+      return;
     }
 
-    function onScanSuccess(decodedText) {
-      openOldQR(decodedText);
+    const target = new URL(NEW_URL);
+    target.searchParams.set("sheet", sheet);
+    target.searchParams.set("reg", reg);
+    window.location.href = target.toString();
+
+  } catch (e) {
+    alert("Сілтемені дұрыс енгізіңіз!");
+  }
+}
+
+function onScanSuccess(decodedText) {
+  if (!isScanning) return;
+  isScanning = false;
+
+  html5QrCode.stop().then(() => {
+    openOldQR(decodedText);
+  }).catch(() => {
+    openOldQR(decodedText);
+  });
+}
+
+async function startCamera(index) {
+  if (isScanning) {
+    await html5QrCode.stop();
+    isScanning = false;
+  }
+
+  currentCamera = index;
+
+  try {
+    await html5QrCode.start(
+      cameras[currentCamera].id,
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      onScanSuccess
+    );
+    isScanning = true;
+  } catch (err) {
+    alert("Камераны қосу мүмкін болмады. Рұқсат беріңіз.");
+  }
+}
+
+async function switchCamera() {
+  if (cameras.length < 2) {
+    alert("Басқа камера табылмады.");
+    return;
+  }
+
+  let next = (currentCamera + 1) % cameras.length;
+  await startCamera(next);
+}
+
+async function initScanner() {
+  html5QrCode = new Html5Qrcode("reader");
+
+  try {
+    cameras = await Html5Qrcode.getCameras();
+
+    if (!cameras.length) {
+      alert("Камера табылмады!");
+      return;
     }
 
-    const scanner = new Html5QrcodeScanner("reader", {
-      fps: 10,
-      qrbox: { width: 250, height: 250 }
-    });
+    let backCamera = cameras.findIndex(camera =>
+      /back|rear|environment|арткы|задн/i.test(camera.label)
+    );
 
-    scanner.render(onScanSuccess);
-  </script>
+    await startCamera(backCamera >= 0 ? backCamera : cameras.length - 1);
+
+  } catch (err) {
+    alert("Камераға рұқсат беріңіз немесе телефон баптауын тексеріңіз.");
+  }
+}
+
+initScanner();
+</script>
+
 </body>
 </html>
