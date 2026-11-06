@@ -461,11 +461,13 @@ function App() {
 
     script.onerror = () => {
       window.clearTimeout(timeout);
+      const failedUrl = script.src;
       cleanup();
       setGoogleLoading(false);
       setGoogleStatus("");
+      console.error("Google Apps Script қатесі. Сұраныс:", failedUrl);
       setErrorMessage(
-        "Google Apps Script сілтемесіне қосылу мүмкін болмады. Web App-ті Anyone ретінде жарияланғанын тексеріңіз."
+        "Google Apps Script сұранысы орындалмады. Браузер консолінен сұраныс сілтемесін тексеріңіз."
       );
     };
 
