@@ -351,7 +351,11 @@ function App() {
   // =========================================================
 
   const getGoogleEndpoint = () => {
-    return String(googleScriptUrl || "").trim().replace(/\/+$/, "");
+    return String(googleScriptUrl || "")
+      .trim()
+      .replace("/macros/u/0/", "/macros/")
+      .replace("/macros/u/1/", "/macros/")
+      .replace(/\/+$/, "");
   };
 
   const extractSpreadsheetId = (value) => {
